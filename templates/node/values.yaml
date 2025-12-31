@@ -1,0 +1,178 @@
+# Template Node.js - Configuracoes Default
+# Sobrescreva esses valores no values do seu ambiente
+
+#############################################
+# INFORMACOES DA APLICACAO
+#############################################
+app:
+  name: my-node-app
+  # Porta que a aplicacao escuta
+  port: 3000
+
+#############################################
+# IMAGEM
+#############################################
+image:
+  repository: node
+  tag: "20-alpine"
+  pullPolicy: IfNotPresent
+
+# imagePullSecrets:
+#   - name: registry-secret
+
+#############################################
+# REPLICAS E SCALING
+#############################################
+replicaCount: 1
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+#############################################
+# RECURSOS
+#############################################
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+#############################################
+# VARIAVEIS DE AMBIENTE
+#############################################
+env:
+  NODE_ENV: production
+  # Adicione mais variaveis conforme necessario
+  # API_URL: https://api.exemplo.com
+
+# Variaveis de ambiente vindas de Secrets
+envFromSecrets: []
+  # - secretName: my-secret
+  #   key: DATABASE_URL
+  #   envName: DATABASE_URL
+
+# Variaveis de ambiente vindas de ConfigMaps
+envFromConfigMaps: []
+  # - configMapName: my-config
+  #   key: API_KEY
+  #   envName: API_KEY
+
+#############################################
+# HEALTH CHECKS
+#############################################
+healthCheck:
+  # Endpoint de health (comum em Express/Fastify/NestJS)
+  path: /health
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+
+#############################################
+# SERVICE
+#############################################
+service:
+  type: ClusterIP
+  port: 80
+  # nodePort: 30000  # Apenas se type: NodePort
+
+#############################################
+# INGRESS
+#############################################
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: app.exemplo.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: app-tls
+    #   hosts:
+    #     - app.exemplo.com
+
+#############################################
+# CONFIGMAP (configuracoes da app)
+#############################################
+configMap:
+  enabled: false
+  data: {}
+    # config.json: |
+    #   {"key": "value"}
+
+#############################################
+# SERVICE ACCOUNT
+#############################################
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+#############################################
+# SECURITY CONTEXT
+#############################################
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+#############################################
+# NODE SELECTOR / TOLERATIONS / AFFINITY
+#############################################
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+#############################################
+# POD DISRUPTION BUDGET
+#############################################
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+#############################################
+# LABELS E ANNOTATIONS EXTRAS
+#############################################
+podLabels: {}
+podAnnotations: {}

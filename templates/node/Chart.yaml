@@ -1,0 +1,12 @@
+apiVersion: v2
+name: node-app
+description: Template para aplicacoes Node.js
+version: 1.0.0
+appVersion: "20.x"
+keywords:
+  - nodejs
+  - javascript
+  - typescript
+  - express
+  - nestjs
+  - fastify
