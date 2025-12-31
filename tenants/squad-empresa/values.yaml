@@ -37,8 +37,9 @@ configs:
       p, role:squad-empresa-admin, repositories, *, *, allow
       p, role:squad-empresa-admin, clusters, get, *, allow
 
-      # Seu usuário GitHub como admin
+      # Seu usuário GitHub como admin (username e ID numérico)
       g, Herograme, role:squad-empresa-admin
+      g, 141376440, role:squad-empresa-admin
 
     policy.default: ""
     scopes: "[groups, email]"

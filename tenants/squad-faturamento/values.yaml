@@ -37,8 +37,9 @@ configs:
       p, role:squad-faturamento-admin, repositories, *, *, allow
       p, role:squad-faturamento-admin, clusters, get, *, allow
 
-      # Seu usuário GitHub como admin
+      # Seu usuário GitHub como admin (username e ID numérico)
       g, Herograme, role:squad-faturamento-admin
+      g, 141376440, role:squad-faturamento-admin
 
     policy.default: ""
     scopes: "[groups, email]"
