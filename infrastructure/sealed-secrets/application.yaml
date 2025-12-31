@@ -1,0 +1,32 @@
+# Sealed Secrets Controller - Gerenciado pelo ArgoCD Root
+# Este controller decripta SealedSecrets em Secrets reais
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sealed-secrets-controller
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://bitnami-labs.github.io/sealed-secrets
+    targetRevision: 2.13.3  # Versao do chart
+    chart: sealed-secrets
+    helm:
+      valuesObject:
+        # Recursos minimos para ambiente de teste
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
