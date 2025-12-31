@@ -1,0 +1,4 @@
+apiVersion: v2
+name: namespace-template
+description: Template para criar namespaces de ambiente por squad
+version: 1.0.0

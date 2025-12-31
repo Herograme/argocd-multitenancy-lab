@@ -1,0 +1,19 @@
+{{- if .Values.resourceQuota.enabled }}
+{{- $env := .Values.environment }}
+{{- $quota := index .Values.resourceQuota $env }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ .Values.squad }}-quota
+  namespace: {{ .Values.namespace }}
+  labels:
+    squad: {{ .Values.squad }}
+    environment: {{ .Values.environment }}
+spec:
+  hard:
+    requests.cpu: {{ index $quota "requests.cpu" | quote }}
+    requests.memory: {{ index $quota "requests.memory" | quote }}
+    limits.cpu: {{ index $quota "limits.cpu" | quote }}
+    limits.memory: {{ index $quota "limits.memory" | quote }}
+    pods: {{ index $quota "pods" | quote }}
+{{- end }}

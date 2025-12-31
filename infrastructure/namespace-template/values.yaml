@@ -1,0 +1,37 @@
+# Valores default - sobrescritos pelo ApplicationSet
+namespace: ""
+squad: ""
+environment: ""
+
+# ResourceQuota por ambiente
+resourceQuota:
+  enabled: true
+  # Valores por ambiente (dev/staging/prod)
+  dev:
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "4"
+    limits.memory: "8Gi"
+    pods: "20"
+  staging:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    pods: "30"
+  prod:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    pods: "50"
+
+# LimitRange para defaults de containers
+limitRange:
+  enabled: true
+  default:
+    cpu: "200m"
+    memory: "256Mi"
+  defaultRequest:
+    cpu: "50m"
+    memory: "64Mi"

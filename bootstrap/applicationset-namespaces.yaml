@@ -1,0 +1,70 @@
+# ApplicationSet com Matrix Generator
+# Cria namespaces de ambiente automaticamente para cada tenant
+#
+# Resultado:
+#   - ns-squad-empresa-dev
+#   - ns-squad-empresa-staging
+#   - ns-squad-empresa-prod
+#   - ns-squad-faturamento-dev
+#   - ... etc
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-namespaces-bootstrap
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          # Generator 1: Detecta tenants pelo diretório
+          - git:
+              repoURL: https://github.com/Herograme/argocd-multitenancy-lab.git
+              revision: HEAD
+              directories:
+                - path: tenants/*
+          # Generator 2: Lista de environments
+          - list:
+              elements:
+                - env: dev
+                - env: staging
+                - env: prod
+
+  template:
+    metadata:
+      # Nome: ns-squad-empresa-dev
+      name: 'ns-{{.path.basename}}-{{.env}}'
+      namespace: argocd
+      labels:
+        tenant: '{{.path.basename}}'
+        environment: '{{.env}}'
+        managed-by: argocd-root
+    spec:
+      project: tenants
+
+      source:
+        repoURL: https://github.com/Herograme/argocd-multitenancy-lab.git
+        targetRevision: HEAD
+        path: infrastructure/namespace-template
+        helm:
+          parameters:
+            - name: namespace
+              value: '{{.path.basename}}-{{.env}}'
+            - name: squad
+              value: '{{.path.basename}}'
+            - name: environment
+              value: '{{.env}}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        # Cluster-scoped - namespace do argocd pq cria Namespace resource
+        namespace: argocd
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
