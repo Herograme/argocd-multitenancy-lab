@@ -1,18 +1,72 @@
 # Argo CD Tenant - Squad Empresa
-# Configurações específicas desta squad
+# Configurações completas para produção
 
 crds:
   install: false
 
+#############################################
+# CONFIGURAÇÕES DO SERVER
+#############################################
 configs:
   params:
-    server.insecure: true
+    server.insecure: true  # Mudar para false em produção com TLS
 
+  # ConfigMap do Argo CD
+  cm:
+    url: https://argocd-squad-empresa.exemplo.com
+
+    # SSO Cloudflare - OIDC
+    oidc.config: |
+      name: Cloudflare
+      issuer: https://<team-name>.cloudflareaccess.com
+      clientID: <client-id-squad-empresa>
+      clientSecret: $oidc.cloudflare.clientSecret
+      requestedScopes:
+        - openid
+        - email
+        - profile
+        - groups
+      requestedIDTokenClaims:
+        groups:
+          essential: true
+
+  # RBAC - Squad Empresa só acessa seu namespace
+  rbac:
+    policy.csv: |
+      # Admins da squad - acesso total ao namespace squad-empresa
+      p, role:squad-empresa-admin, applications, *, squad-empresa/*, allow
+      p, role:squad-empresa-admin, applicationsets, *, squad-empresa/*, allow
+      p, role:squad-empresa-admin, logs, get, squad-empresa/*, allow
+      p, role:squad-empresa-admin, exec, create, squad-empresa/*, allow
+      p, role:squad-empresa-admin, projects, *, squad-empresa, allow
+      p, role:squad-empresa-admin, repositories, *, *, allow
+      p, role:squad-empresa-admin, clusters, get, *, allow
+
+      # Desenvolvedores da squad - acesso limitado
+      p, role:squad-empresa-dev, applications, get, squad-empresa/*, allow
+      p, role:squad-empresa-dev, applications, sync, squad-empresa/*, allow
+      p, role:squad-empresa-dev, logs, get, squad-empresa/*, allow
+      p, role:squad-empresa-dev, projects, get, squad-empresa, allow
+
+      # Binding de grupos do Cloudflare para roles
+      g, squad-empresa-admins, role:squad-empresa-admin
+      g, squad-empresa-devs, role:squad-empresa-dev
+
+    policy.default: ""
+    scopes: "[groups, email]"
+
+  # Secret para clientSecret do OIDC
+  secret:
+    extra:
+      oidc.cloudflare.clientSecret: "<seu-client-secret-aqui>"
+
+#############################################
+# RECURSOS DO SERVER
+#############################################
 server:
   service:
     type: ClusterIP
 
-  # Recursos da squad
   resources:
     requests:
       cpu: 50m
@@ -21,6 +75,20 @@ server:
       cpu: 200m
       memory: 256Mi
 
+  # Ingress (descomentar em produção)
+  # ingress:
+  #   enabled: true
+  #   ingressClassName: nginx
+  #   hosts:
+  #     - argocd-squad-empresa.exemplo.com
+  #   tls:
+  #     - secretName: argocd-squad-empresa-tls
+  #       hosts:
+  #         - argocd-squad-empresa.exemplo.com
+
+#############################################
+# CONTROLLER
+#############################################
 controller:
   resources:
     requests:
@@ -30,20 +98,38 @@ controller:
       cpu: 500m
       memory: 512Mi
 
+#############################################
+# REPO SERVER
+#############################################
 repoServer:
   resources:
     requests:
       cpu: 50m
       memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
 
+#############################################
+# REDIS
+#############################################
 redis:
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
 
+#############################################
+# COMPONENTES DESABILITADOS
+#############################################
 dex:
-  enabled: false
+  enabled: false  # Usando OIDC direto, não precisa do Dex
 
 notifications:
-  enabled: false
+  enabled: false  # Habilitar se quiser notificações
+
+applicationSet:
+  enabled: true  # Permitir ApplicationSets neste tenant

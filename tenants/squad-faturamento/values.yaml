@@ -1,13 +1,68 @@
 # Argo CD Tenant - Squad Faturamento
-# Configurações específicas desta squad
+# Configurações completas para produção
 
 crds:
   install: false
 
+#############################################
+# CONFIGURAÇÕES DO SERVER
+#############################################
 configs:
   params:
-    server.insecure: true
+    server.insecure: true  # Mudar para false em produção com TLS
 
+  # ConfigMap do Argo CD
+  cm:
+    url: https://argocd-squad-faturamento.exemplo.com
+
+    # SSO Cloudflare - OIDC
+    oidc.config: |
+      name: Cloudflare
+      issuer: https://<team-name>.cloudflareaccess.com
+      clientID: <client-id-squad-faturamento>
+      clientSecret: $oidc.cloudflare.clientSecret
+      requestedScopes:
+        - openid
+        - email
+        - profile
+        - groups
+      requestedIDTokenClaims:
+        groups:
+          essential: true
+
+  # RBAC - Squad Faturamento só acessa seu namespace
+  rbac:
+    policy.csv: |
+      # Admins da squad - acesso total ao namespace squad-faturamento
+      p, role:squad-faturamento-admin, applications, *, squad-faturamento/*, allow
+      p, role:squad-faturamento-admin, applicationsets, *, squad-faturamento/*, allow
+      p, role:squad-faturamento-admin, logs, get, squad-faturamento/*, allow
+      p, role:squad-faturamento-admin, exec, create, squad-faturamento/*, allow
+      p, role:squad-faturamento-admin, projects, *, squad-faturamento, allow
+      p, role:squad-faturamento-admin, repositories, *, *, allow
+      p, role:squad-faturamento-admin, clusters, get, *, allow
+
+      # Desenvolvedores da squad - acesso limitado
+      p, role:squad-faturamento-dev, applications, get, squad-faturamento/*, allow
+      p, role:squad-faturamento-dev, applications, sync, squad-faturamento/*, allow
+      p, role:squad-faturamento-dev, logs, get, squad-faturamento/*, allow
+      p, role:squad-faturamento-dev, projects, get, squad-faturamento, allow
+
+      # Binding de grupos do Cloudflare para roles
+      g, squad-faturamento-admins, role:squad-faturamento-admin
+      g, squad-faturamento-devs, role:squad-faturamento-dev
+
+    policy.default: ""
+    scopes: "[groups, email]"
+
+  # Secret para clientSecret do OIDC
+  secret:
+    extra:
+      oidc.cloudflare.clientSecret: "<seu-client-secret-aqui>"
+
+#############################################
+# RECURSOS DO SERVER
+#############################################
 server:
   service:
     type: ClusterIP
@@ -20,6 +75,9 @@ server:
       cpu: 200m
       memory: 256Mi
 
+#############################################
+# CONTROLLER
+#############################################
 controller:
   resources:
     requests:
@@ -29,20 +87,38 @@ controller:
       cpu: 500m
       memory: 512Mi
 
+#############################################
+# REPO SERVER
+#############################################
 repoServer:
   resources:
     requests:
       cpu: 50m
       memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
 
+#############################################
+# REDIS
+#############################################
 redis:
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
 
+#############################################
+# COMPONENTES DESABILITADOS
+#############################################
 dex:
-  enabled: false
+  enabled: false  # Usando OIDC direto, não precisa do Dex
 
 notifications:
-  enabled: false
+  enabled: false  # Habilitar se quiser notificações
+
+applicationSet:
+  enabled: true  # Permitir ApplicationSets neste tenant
