@@ -1,5 +1,5 @@
 # Argo CD Tenant - Squad Empresa
-# Configurações completas para produção
+# Configurações com SSO GitHub para teste
 
 crds:
   install: false
@@ -9,31 +9,26 @@ crds:
 #############################################
 configs:
   params:
-    server.insecure: true  # Mudar para false em produção com TLS
+    server.insecure: true
 
   # ConfigMap do Argo CD
   cm:
-    url: https://argocd-squad-empresa.exemplo.com
+    url: http://localhost:9092
 
-    # SSO Cloudflare - OIDC
-    oidc.config: |
-      name: Cloudflare
-      issuer: https://<team-name>.cloudflareaccess.com
-      clientID: <client-id-squad-empresa>
-      clientSecret: $oidc.cloudflare.clientSecret
-      requestedScopes:
-        - openid
-        - email
-        - profile
-        - groups
-      requestedIDTokenClaims:
-        groups:
-          essential: true
+    # SSO GitHub OAuth
+    dex.config: |
+      connectors:
+        - type: github
+          id: github
+          name: GitHub
+          config:
+            clientID: Ov23liOjPSdciLv2j3dM
+            clientSecret: $dex.github.clientSecret
 
-  # RBAC - Squad Empresa só acessa seu namespace
+  # RBAC - Squad Empresa
   rbac:
     policy.csv: |
-      # Admins da squad - acesso total ao namespace squad-empresa
+      # Admin via GitHub
       p, role:squad-empresa-admin, applications, *, squad-empresa/*, allow
       p, role:squad-empresa-admin, applicationsets, *, squad-empresa/*, allow
       p, role:squad-empresa-admin, logs, get, squad-empresa/*, allow
@@ -42,23 +37,16 @@ configs:
       p, role:squad-empresa-admin, repositories, *, *, allow
       p, role:squad-empresa-admin, clusters, get, *, allow
 
-      # Desenvolvedores da squad - acesso limitado
-      p, role:squad-empresa-dev, applications, get, squad-empresa/*, allow
-      p, role:squad-empresa-dev, applications, sync, squad-empresa/*, allow
-      p, role:squad-empresa-dev, logs, get, squad-empresa/*, allow
-      p, role:squad-empresa-dev, projects, get, squad-empresa, allow
-
-      # Binding de grupos do Cloudflare para roles
-      g, squad-empresa-admins, role:squad-empresa-admin
-      g, squad-empresa-devs, role:squad-empresa-dev
+      # Seu usuário GitHub como admin
+      g, Herograme, role:squad-empresa-admin
 
     policy.default: ""
     scopes: "[groups, email]"
 
-  # Secret para clientSecret do OIDC
+  # Secret para GitHub OAuth
   secret:
     extra:
-      oidc.cloudflare.clientSecret: "<seu-client-secret-aqui>"
+      dex.github.clientSecret: "e82adac283fffca29239acacc8ca75497cce354f"
 
 #############################################
 # RECURSOS DO SERVER
@@ -74,17 +62,6 @@ server:
     limits:
       cpu: 200m
       memory: 256Mi
-
-  # Ingress (descomentar em produção)
-  # ingress:
-  #   enabled: true
-  #   ingressClassName: nginx
-  #   hosts:
-  #     - argocd-squad-empresa.exemplo.com
-  #   tls:
-  #     - secretName: argocd-squad-empresa-tls
-  #       hosts:
-  #         - argocd-squad-empresa.exemplo.com
 
 #############################################
 # CONTROLLER
@@ -123,13 +100,13 @@ redis:
       memory: 128Mi
 
 #############################################
-# COMPONENTES DESABILITADOS
+# DEX - HABILITADO PARA SSO
 #############################################
 dex:
-  enabled: false  # Usando OIDC direto, não precisa do Dex
+  enabled: true
 
 notifications:
-  enabled: false  # Habilitar se quiser notificações
+  enabled: false
 
 applicationSet:
-  enabled: true  # Permitir ApplicationSets neste tenant
+  enabled: true
