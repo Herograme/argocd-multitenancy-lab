@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-argocd-bootstrap
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    # Git Generator - detecta pastas em /tenants/
+    - git:
+        repoURL: https://github.com/Herograme/argocd-multitenancy-lab.git
+        revision: HEAD
+        directories:
+          - path: tenants/*
+  template:
+    metadata:
+      name: 'argocd-{{.path.basename}}'
+      namespace: argocd
+      labels:
+        tenant: '{{.path.basename}}'
+        managed-by: argocd-root
+    spec:
+      project: tenants
+      sources:
+        # Source 1: Helm chart do Argo CD
+        - repoURL: https://argoproj.github.io/argo-helm
+          chart: argo-cd
+          targetRevision: "*"
+          helm:
+            releaseName: 'argocd-{{.path.basename}}'
+            valueFiles:
+              - '$values/{{.path.path}}/values.yaml'
+        # Source 2: Este repositório (para pegar os values)
+        - repoURL: https://github.com/Herograme/argocd-multitenancy-lab.git
+          targetRevision: HEAD
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PruneLast=true
